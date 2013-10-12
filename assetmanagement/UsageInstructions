@@ -1,0 +1,21 @@
+To install the database, follow the steps below:
+[
+Note: perform these steps in the same shell where yaws is running
+      You need to perform these steps only once.
+]
+
+# load the mnesia module
+> l(mnesia).
+
+> application:set_env(mnesia, dir, "path to the directory where u want to store the database").
+
+> mnesia:create_schema([node()]).
+
+> mnesia:start().
+
+> c(db_asset).
+
+> db_asset:install([node()]).
+
+# to run the databse, use
+> db_asset:spawn_db().

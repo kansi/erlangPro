@@ -1,0 +1,179 @@
+%% Date : 27/06/2013
+%% Author: Vanshdeep Singh
+%% Description: Below code takes users and assets from database
+%% and displays a form, which can we used to issue assets to a user.
+
+
+<html>
+
+<body>
+  <erl>
+    out(_Arg) -> 
+      {ehtml, navbar:navbar()}.
+  </erl>
+
+  <erl>
+    out(_Arg) ->
+    {ehtml, 
+      [ {h2, [{align, center}], "Issue Assets"},
+        {hr}, {br}
+      ]
+    }.
+  </erl>
+
+
+  <erl>
+    %% Note the bellow has been written to issue multiple assets to only one user
+    -include("yaws_root/practice/table_definations.hrl").
+
+    out(Arg) ->
+      if 
+        Arg#arg.req#http_request.method =:= 'GET' ->
+          {html, ""}; 
+        true ->
+          Issue_assets = yaws_api:parse_post(Arg),
+
+          case lists:keyfind( "asset_id", 1, Issue_assets ) of
+            {"asset_id", _ } -> 
+              All_assetsId = [ AssetId || {"asset_id", AssetId} <- Issue_assets ],
+              {"user_id", UserId} = lists:keyfind("user_id", 1, Issue_assets),
+              Pid = whereis(assetDB),
+
+              Execute = 
+                fun(Pid, AssetId, UserId) ->
+                  Rec = #issued_assets{asset_id=AssetId, user_id=UserId, issue_date=date() },
+                  Pid ! { self(), issue_asset, Rec},
+                  receive
+                    RET_status -> ok
+                  end,
+                  RET_status
+                end,
+
+              ListOfStatus = ordsets:from_list( [ Execute(Pid, AssetId, UserId) || AssetId <- All_assetsId ] ),
+              Error = [ Status || Status <- ListOfStatus, Status =:= "Error" ],
+              if  
+                length(Error) =:= 1 ->  {html, "<h3 align=center> Error while issuing Asset ! </h3>"};
+                true ->  {html, "<h3 align=center> Assets issued successfully ! </h3>"}
+              end;
+
+            false ->  {html, "<h3 align=center> Please select an asset to issue ! </h3>"}
+          end
+      end.
+  </erl>
+
+
+
+  <erl>
+  out(_Arg) ->
+    %this code segment displays all users and only those assets that
+    % are available for issuing.
+
+    %Assets = hd(tl(tuple_to_list(file:consult('assets')))),
+    %Users = hd(tl(tuple_to_list(file:consult('users')))),
+
+    Pid = whereis('assetDB'),
+    Pid ! {self(), get_assets},
+    receive
+      AllAssets -> ok
+    end,
+
+    Pid ! {self(), get_issued_assets},
+    receive
+      IssuedAssets -> ok
+    end,
+
+    Pid ! {self(), get_users},
+    receive
+      Users -> ok
+    end,
+
+    Assets = AllAssets -- [ Asset || Asset <- AllAssets, Iasset <- IssuedAssets,
+              lists:keyfind("asset_id", 1, Asset) =:= lists:keyfind("asset_id",1,Iasset),
+              lists:keyfind("return_date", 1, Iasset) =:= {"return_date", undefined}
+    ],
+
+      %{html, f("~p", [IssuedAssets])}.
+      %{html, f("~p", [nonAvalAssets])}.
+
+    Convert_select_item =
+      fun( [{"user_id", Id}, {"name", Name}, {"email", _},  {"contact", _} ])
+          ->
+            {option, [{value, Id}], Name };
+          (_) -> error
+      end,
+
+    Drop_down_list =
+      {select, [{name,"user_id"}],  [ Convert_select_item(User) || User <- Users ]},
+
+    %Here i hav to check if the asset is issued or not and
+    %display it accordingly
+
+    Convert_to_Rows = 
+      fun ([{"asset_id", Id}, {"name", Name}, {"description", Des}, {"location", Loc}, {"state", State } ] )
+         ->
+              {tr, [],
+                [ {td, [], Id},
+                  {td, [], Name},
+                  {td, [], Des},
+                  {td, [], Loc},
+                  {td, [], State},
+                  {td, [{align, center}], 
+                    [{input, 
+                      [ {type, checkbox}, 
+                        {name, "asset_id"},
+                        {value, Id} 
+                       ] 
+                     }] 
+                  }
+                ]
+              };
+          (_) -> error
+      end,
+
+    Col_width = [{align, left}, {width, 110}],
+    Table_header =        
+        [ {tr, [],
+            [ {th, Col_width, "Id" },
+              {th, Col_width, "Name" },
+              {th, [{align, left}, {width, 150}], "Description" },
+              {th, Col_width, "Location" },
+              {th, Col_width, "State"},
+              {th, Col_width, "Issue Asset"}
+            ] 
+          }
+        ],
+    
+    Table_rows = Table_header ++ [ Convert_to_Rows(Asset) || Asset <- Assets ],
+
+    %{html, f("~p", [Table_rows])}.
+    %{ehtml, [Assets]}.
+    {ehtml,
+      [
+        {form, [{action, "issue_assets.yaws"}, {method, "POST"}],
+          [
+            { table, [{align, center}, {border, 0}], 
+              [ {tr, [], [{td, [{colspan, 6}], [{hr}]}]},
+                Table_rows,
+                {tr, [], [{td, [{colspan, 6}], [{hr}]}]},
+                { tr, [{height, 50}] ,
+                  [
+                    { td , [{colspan, 3}, {align, right}], "Issue these assets to :" },
+                    { td , [{colspan, 3}, {align, left}], 
+                      [Drop_down_list] }
+                  ]
+                },
+                { tr, [] ,
+                  [ { td , [{colspan, 6}, {align, center}], 
+                      [{input, [{type, submit}, {name, "issue"}, {value, "issue"}]}]}
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }.
+  </erl>
+
+</body>
+</html>

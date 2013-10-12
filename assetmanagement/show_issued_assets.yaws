@@ -1,0 +1,103 @@
+%% Date: 27/06/2013
+%% Author: Vanshdeep Singh
+%% Description: Below code generates a list of all the assets
+%% that have been issued and also to whom these assets have been issued
+
+<html>
+
+<body>
+
+  <erl>
+    %this segment generated the nav bar
+    out(_Arg) ->
+      {ehtml, navbar:navbar()}.
+  </erl>
+
+  <erl>
+    out(_Ars) ->
+    {ehtml, 
+      [ {h2, [{align, center}], "Issued Assets"},
+        {hr}, {br}
+      ]
+    }.
+  </erl>
+
+  <erl>
+  out(_Arg) ->
+    %this code segment displays all the assets in a table
+    
+    Pid = whereis('assetDB'),
+    Pid ! {self(), get_assets},   
+    receive
+      Assets -> ok
+    end,
+
+    Pid ! {self(), get_issued_assets},   
+    receive
+      IssuedAssets -> ok
+    end,
+
+    Pid ! {self(), get_users},   
+    receive
+      Users -> ok
+    end,
+
+    IssuedAssetsList =
+    [ Asset ++ [lists:keyfind("name", 1, User)] || Asset <- Assets, Iasset <- IssuedAssets, User <- Users,
+              lists:keyfind("user_id", 1, User) =:= lists:keyfind("user_id", 1, Iasset),
+              lists:keyfind("asset_id", 1, Asset) =:= lists:keyfind("asset_id",1,Iasset),
+              lists:keyfind("return_date", 1, Iasset) =:= {"return_date", undefined}
+    ],
+
+%   {html, f("~p", [IssuedAssetsList])}.
+%   {html, f("~p", [nonAvalAssets])}.
+
+    Convert_to_Rows =
+    fun ([{"asset_id", Id}, {"name", Name}, {"description", Des}, {"location", Loc}, {"state", State }, {"name", UserName} ] )
+      ->
+        {tr, [],
+          [ {td, [], Id},
+            {td, [], Name},
+            {td, [], Des},
+            {td, [], Loc},
+            {td, [], State},
+            {td, [], UserName }
+          ]
+        };
+      (_) -> error
+    end,
+
+    Col_width = [{align, left}, {width, 110}],
+    Table_header =
+    [ {tr, [],
+        [ {th, Col_width, "Id" },
+          {th, Col_width, "Name" },
+          {th, [{align, left}, {width, 150}], "Description" },
+          {th, Col_width, "Location" },
+          {th, Col_width, "State"},
+          {th, Col_width, "Issued to"}
+        ] 
+      },
+      {tr, [], [{td, [{colspan, 6}], [{hr}]}]}
+    ],
+    
+    Table_rows = Table_header ++ [ Convert_to_Rows(Asset) || Asset <- IssuedAssetsList ],
+
+%   {html, f("~p", [IssuedAssetsList])}.
+%   {html, f("~p~n~p", [IssuedAssetsList, Table_rows])}.
+    %{ehtml, [Assets]}.
+    {ehtml,
+      [
+        { table, [{align, center}, {border, 0}], 
+          [ %{tr, [], [{td, [{colspan, 6}], [{hr}]}]},
+            Table_rows,
+            {tr, [], [{td, [{colspan, 6}], [{hr}]}]}
+          ]
+        }
+      ]
+    }.
+  </erl>
+
+
+</body>
+</html>

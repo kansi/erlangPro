@@ -1,0 +1,132 @@
+%% Date : 25/06/2013
+%% Author: Vanshdeep Singh
+%% Description: Below code displays a form, which can used to 
+%% add assets to the database.
+
+<html>
+
+<body>
+  <erl>
+    %this segment generated the nav bar
+    out(_Arg) ->
+      {ehtml, navbar:navbar()}.
+  </erl>
+
+  <erl>
+    out(_Ars) ->
+    {ehtml, 
+      [ {h2, [{align, center}], "Add Assets"},
+        {hr}, {br}
+      ]
+    }.
+  </erl>
+
+  <erl>
+    %% Below code takes the form data and enters it into
+    %% the database
+    -include("yaws_root/practice/table_definations.hrl").
+    out(Arg) ->
+
+      Form_error = fun(Field, New_asset) -> 
+        case lists:keyfind(Field, 1, New_asset) of
+          {Field, []} -> error;
+          {Field, Value} -> Value
+        end
+      end,
+
+      if 
+        Arg#arg.req#http_request.method =:= 'GET' ->
+          {html, ""};
+
+        true ->
+          New_asset = yaws_api:parse_post(Arg),
+
+          Id =  Form_error("asset_id", New_asset),
+          Name = Form_error("name", New_asset),
+          Description = Form_error("description", New_asset),
+          Location = Form_error("location", New_asset),
+          State = Form_error("state", New_asset),
+
+          if
+            Id =:= error;
+            Name =:= error;
+            Description =:= error;
+            Location =:= error;
+            State =:= error ->
+              {html, "<h3 align='center'>Error: One or more fields were empty !</h3>" };
+            true ->
+              % make a list of arguments to be sent                 
+              Asset = #assets{asset_id=Id, asset_name=Name, description=Description, location=Location, state=State},
+              % send to the db process
+              % Database = spawn(db_asset, get_query, []), 
+              
+              %global:register_name('db', Database),
+              Pid = whereis('assetDB'),
+              Pid ! {self(), insert_asset, Asset},
+               
+              receive
+                Msg -> ok
+              end,
+              %% Below code writes the the data to the file, but this is no longer used
+              %% file:write_file('assets', io_lib:fwrite("~p.\n", [New_asset]),[append]),
+
+              {html, "<h3 align='center'>" ++ Msg ++ "</h3>"}
+              %% {html, f("~p", [Msg])}
+          end
+      end.
+  </erl>
+
+  <erl>
+    %% This code generates a form, which can be used by the user
+    %% to add assets to the database
+    out(_Args) ->
+      Align = {align, right},
+
+      {ehtml,
+        [
+
+          {form, [{action, "add_asset.yaws"}, {method, "POST"}],
+            [
+              { table, [{align, center}], 
+                [ { tr, [] ,
+                    [ { td , [Align], "Id : " },
+                      { td , [],  [{input, [{type, "text"}, {name, "asset_id"}]}] }
+                    ]
+                  },
+                  { tr, [] ,
+                    [ { td , [Align], "Name : " },
+                      { td , [],  [{input, [{type, "text"}, {name, "name"}]}] }
+                    ]
+                  },
+                  { tr, [] ,
+                    [ { td , [Align], "Description : " },
+                      { td , [],  [{input, [{type, "text"}, {name, "description"}]}] }
+                    ]
+                  },
+                  { tr, [] ,
+                    [ { td , [Align], "Location : " },
+                      { td , [],  [{input, [{type, "text"}, {name, "location"}]}] }
+                    ]
+                  },
+                  { tr, [] ,
+                    [ 
+                      { td , [Align], "State : " },
+                      { td , [],  [{input, [{type, "text"}, {name, "state"}]}] }
+                    ]
+                  },
+                  { tr, [] ,
+                    [ 
+                      { td , [{colspan, 2}, {align, center}], 
+                        [ {input, [{type, submit}, {name, "Add"}, {value, "Add"}]}]  }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }.
+  </erl>
+
+</body>
+</html>

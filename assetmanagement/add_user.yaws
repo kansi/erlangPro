@@ -1,0 +1,125 @@
+<html>
+
+<body>
+  <erl>
+    %this segment generated the nav bar
+    out(_Arg) -> 
+      {ehtml, navbar:navbar()}.
+  </erl>
+
+  <erl>
+    out(_Ars) ->
+    {ehtml, 
+      [ {h2, [{align, center}], "Add User"},
+        {hr}, {br}
+      ]
+    }.
+  </erl>
+
+  <erl>   
+    -include("yaws_root/practice/table_definations.hrl").
+    out(Arg) ->
+
+      Form_error = fun(Field, New_user) -> 
+        case lists:keyfind(Field, 1, New_user) of
+          {Field, []} -> error;
+          {Field, Value} -> Value
+        end
+      end,
+
+      if 
+        Arg#arg.req#http_request.method =:= 'GET' ->
+          {html, ""};     
+        
+        true ->
+          New_user = yaws_api:parse_post(Arg),
+
+          Id =  Form_error("user_id", New_user),
+          Name = Form_error("name", New_user),
+          Email = Form_error("email", New_user),
+          Contact = Form_error("contact", New_user),
+          Type = Form_error("user_type", New_user),
+
+          if
+            Id =:= error;
+            Name =:= error;
+            Contact =:= error;
+            Email =:= error;
+            Type =:= error ->
+              {html, "<h3 align='center'>Error: One or more fields were empty !</h3>" };
+            true -> 
+              %% file:write_file('users', io_lib:fwrite("~p.\n", [New_user]),[append]),
+              User = #users{user_id=Id, user_name=Name, contact=Contact, email=Email, user_type=Type}, 
+              %% send to the db process
+              Pid = whereis('assetDB'),
+              Pid ! {self(), insert_user, User},
+  
+              receive
+                Msg -> ok
+              end,
+              %% Below code writes the the data to the file
+              %% file:write_file('assets', io_lib:fwrite("~p.\n", [New_asset]),[append]),
+              {html, "<h3 align='center'>" ++ Msg ++ "</h3>"}
+              %{html, f("~p", [New_user])}
+          end
+      end.
+  </erl>
+
+  <erl>
+    out(_Args) ->
+      Align = {align, right},
+
+      {ehtml,
+        [
+
+          {form, [{action, "add_user.yaws"}, {method, "POST"}],
+            [
+              { table, [{align, center}],
+                [ { tr, [] ,
+                    [ { td , [Align], "Id : " },
+                      { td , [],  [{input, [{type, "text"}, {name, "user_id"}]}] }
+                    ]
+                  },
+                  { tr, [] ,
+                    [ { td , [Align], "Name : " },
+                      { td , [],  [{input, [{type, "text"}, {name, "name"}]}] }
+                    ]
+                  },
+                  { tr, [] ,
+                    [ { td , [Align], "Email : " },
+                      { td , [],  [{input, [{type, "text"}, {name, "email"}]}] }
+                    ]
+                  },
+                  { tr, [] ,
+                    [ 
+                      { td , [Align], "Contact : " },
+                      { td , [],  [{input, [{type, "text"}, {name, "contact"}]}] }
+                    ]
+                  },
+                  { tr, [] ,
+                    [ 
+                      { td , [Align], "Type : " },
+                      { td , [],  
+                        [ { select, [{name,"user_type"}],  
+                            [{option, [{value, 'normal'}], "Normal" },  {option, [{value, 'admin'}], "Admin" }] 
+                          }
+                        ] 
+                      }
+                    ]
+                  },
+                  { tr, [] ,
+                    [ 
+                      { td , [{colspan, 2}, {align, center}], 
+                        [ {input, [{type, submit}, {name, "Add"}, {value, "Add"}]}]  }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }.
+  </erl>
+
+</body>
+</html>
