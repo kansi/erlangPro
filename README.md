@@ -3,7 +3,7 @@ erlangPro
 This repo contains some of my erlang hacking...
 
 
-                                                   Erlang ROCKS !!
+                                                Erlang ROCKS !!
 
-                                                     \m/   \m/
-                                                      \\_ _//
+                                                  \m/   \m/
+                                                   \\_ _//
