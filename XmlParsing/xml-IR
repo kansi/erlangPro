@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<student-record><student><name>Rahul</name><course marks="90" name="cs11" /><course marks="92" name="cs12" /><course marks="95" name="cs13" /></student><student><name>Saumya</name><course marks="80" name="cs11" /><course marks="77" name="cs12" /><course marks="63" name="cs13" /><course marks="94" name="cs14" /><course marks="46" name="cs29" /><course marks="49" name="cs89" /><course marks="88" name="cs90" /><course marks="64" name="cs21" /></student></student-record>
