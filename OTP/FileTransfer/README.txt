@@ -28,8 +28,6 @@ Note : in order to run the code you should be connected to internet.
 
     a. In erlang shell of terminal 1 execute the following commands :
        (client@localhost)1> net_kernel:connect_node(serverNode@localhost).
-                                                                         |
-       NOTE : the . is necessary in the end ->------------------>--------^
 
        (client@localhost)2> net_kernel:connect_node(registry@localhost).
 
