@@ -1,9 +1,21 @@
-The codes are written in erlang.
+The codes work as follows:
+    Registry    : stores the names and tracks the file servers.
+    Clinet      : reads and writes a file to the file server.
+    File Server : stroes data recieved from the client.
 
-Installing Erlang
-    sudo apt-get install erlang
-    yum install erlang
-
+- The registry server is started first.
+- Then we start a couple of file servers, each of which registers
+  with the registry server.
+- The registry server elects one of the file server as the master
+  server on the first come first server basis.
+- Only master server can write data, while all server can handle
+  read requests.
+  
+  
+  
+    +------+
+    |client|
+    +------+
 
 Running the code
 
@@ -95,7 +107,3 @@ Note : in order to run the code you should be connected to internet.
     b.  Now in the termainal 1 we can execute the read command to test the code
         follows:
         (client@localhost)6> client:clnttcp_create({read, "input.txt"}).
-
-
-
-
