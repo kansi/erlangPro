@@ -10,12 +10,36 @@ The codes work as follows:
   server on the first come first server basis.
 - Only master server can write data, while all server can handle
   read requests.
-  
-  
-  
-    +------+
-    |client|
-    +------+
+- To write data to the fileServers the client simply gets the name of the master
+  server from the registry and sends data to store at the server side.
+- To download file, client spawns a dispacher and threads that read data from
+  the fileServers.
+- The client spawns as many read threads as there are servers.
+- Each thread asks for a chunk number from the dispacher and then requests the
+  chunk number from the file server.
+
+                                    +--------+                               
+                    |---------------|Registry|----<---------------<--------| 
+    Get file Server ^               +--------+     Register FileServers    | 
+    Names           |                              with registry           | 
+                    ^                                                      | 
+                    |                                                      | 
+                +------+                                                   | 
+                |client|                                                   | 
+                +------+                                                   | 
+                    |               download                               | 
+    Gives Chunk     |    +------+    data          +--------------------+  | 
+    no to threads   |----|Thread|----------------->|Fileserver1 (MASTER)|--| 
+    to download     |    +------+                  +--------------------+  | 
+    +---------+     |    +------+                  +-----------+           | 
+    |Dispacher|-->--|----|Thread|----------------->|Fileserver2|-----------| 
+    +---------+     |    +------+                  +-----------+           | 
+                    |    +------+                  +-----------+           | 
+                    |----|Thread|----------------->|Fileserver3|-----------| 
+                    |    +------+                  +-----------+           | 
+                                                                             
+                                                                             
+
 
 Running the code
 
